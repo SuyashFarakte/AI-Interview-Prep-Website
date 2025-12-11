@@ -1,9 +1,5 @@
 import express from 'express';
-import {
-  togglePinQuestion,
-  updateQuestionNote,
-  addQuestionsToSession
-} from '../controllers/questionController.js';
+import {togglePinQuestion,updateQuestionNote,addQuestionsToSession} from '../controllers/questionController.js';
 
 import { protect } from '../middleware/authMiddleware.js';
 

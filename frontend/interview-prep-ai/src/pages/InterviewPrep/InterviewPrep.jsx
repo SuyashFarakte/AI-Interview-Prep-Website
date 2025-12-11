@@ -1,27 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from "react-router-dom";
 import moment from "moment";
-import { AnimatePresence, motion } from "framer-motion";
-import { LuCircleAlert, LuListCollapse } from "react-icons/lu";
+import { LuCircleAlert, LuListCollapse, LuPlay } from "react-icons/lu";
 import SpinnerLoader from "../../components/Loader/SpinnerLoader";
 import { toast } from "react-hot-toast";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
 import RoleInfoHeader from './components/RoleInfoHeader';
 import axiosInstance from '../../utils/axiosInstance';
 import { API_PATHS } from '../../utils/apiPaths';
-import QuestionCard from '../../components/Cards/QuestionCard';
-import AIResponsePreview from './components/AIResponsePreview';
-import SkeletonLoader from '../../components/Loader/SkeletonLoader';
-import Drawer from "../../components/Loader/Drawer";
+import InterviewSimulator from './components/InterviewSimulator';
 
 const InterviewPrep = () => {
   const { sessionId } = useParams();
   const [sessionData, setSessionData] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
-  const [openLearnMoreDrawer, setOpenLearnMoreDrawer] = useState(false);
-  const [explanation, setExplanation] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isUpdateLoader, setIsUpdateLoader] = useState(false);
+  const [isInterviewMode, setIsInterviewMode] = useState(false);
 
   // Fetch session data by session id
   const fetchSessionDetailsById = async () => {
@@ -37,52 +31,13 @@ const InterviewPrep = () => {
     }
   };
 
-  // Generate concept explanation
-  const generateConceptExplanation = async (question) => {
-    try {
-      setErrorMsg("");
-      setExplanation(null);
-      setIsLoading(true);
-      setOpenLearnMoreDrawer(true);
-
-      const response = await axiosInstance.post(
-        API_PATHS.AI.GENERATE_EXPLANATION,
-        { question }
-      );
-      if (response.data) {
-        setExplanation(response.data);
-      } else {
-        setErrorMsg("System blinked 😅 Happens sometimes — try clicking again once or twice, it usually works!");
-      }
-    } catch (error) {
-      setErrorMsg("System blinked 😅 Happens sometimes — try clicking again once or twice, it usually works!");
-      console.error("Error:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Toggle question pin status
-  const toggleQuestionPinStatus = async (questionId) => {
-    try {
-      const response = await axiosInstance.post(
-        API_PATHS.QUESTION.PIN(questionId)
-      );
-      if (response.data && response.data.question) {
-        fetchSessionDetailsById();
-      }
-    } catch (error) {
-      console.error("Error", error);
-    }
-  };
-
   // Add more questions to a session
 const uploadMoreQuestions = async () => {
   try {
     setIsUpdateLoader(true);
     setErrorMsg(""); // Clear any previous errors
     
-    console.log("Starting to generate questions...");
+    // console.log("Starting to generate questions...");
     
     // Generate questions from AI
     const aiResponse = await axiosInstance.post(
@@ -95,7 +50,7 @@ const uploadMoreQuestions = async () => {
       }
     );
     
-    console.log("AI Response:", aiResponse.data);
+    // console.log("AI Response:", aiResponse.data);
     const generatedQuestions = aiResponse.data;
 
     // Validate that we got questions
@@ -104,7 +59,7 @@ const uploadMoreQuestions = async () => {
       return;
     }
 
-    console.log("Adding questions to session...");
+    // console.log("Adding questions to session...");
     
     // Add questions to session
     const addQuestionsResponse = await axiosInstance.post(
@@ -115,13 +70,13 @@ const uploadMoreQuestions = async () => {
       }
     );
     
-    console.log("Add Questions Response:", addQuestionsResponse.data);
+    // console.log("Add Questions Response:", addQuestionsResponse.data);
     
     // Check if questions were added successfully
     if (addQuestionsResponse.data.success) {
       const questionsCount = addQuestionsResponse.data.createdQuestions?.length || 0;
       toast.success(`Added ${questionsCount} More Q&A!`);
-      console.log("Refreshing session data...");
+      // console.log("Refreshing session data...");
       // Refresh session data to show new questions
       await fetchSessionDetailsById();
     } else {
@@ -157,105 +112,101 @@ const uploadMoreQuestions = async () => {
   }, []);
 
   return (
-  <DashboardLayout>
-  <div className="pl-6 sm:pl-10 md:pl-16 lg:px-0">
-    <RoleInfoHeader
-      role={sessionData?.role || ""}
-      topicsToFocus={sessionData?.topicsToFocus || ""}
-      experience={sessionData?.experience || "-"}
-      questions={sessionData?.questions?.length || "-"}
-      description={sessionData?.description || ""}
-      lastUpdated={
-        sessionData?.updatedAt
-          ? moment(sessionData.updatedAt).format("Do MMM YYYY")
-          : ""
-      }
-    />
-  </div>
+    <DashboardLayout>
+      {/* Interview Mode View */}
+      {isInterviewMode && sessionData?.questions?.length > 0 ? (
+        <InterviewSimulator
+          questions={sessionData.questions}
+          sessionData={sessionData}
+          onExit={() => setIsInterviewMode(false)}
+        />
+      ) : (
+        <div>
+          <div className="pl-6 sm:pl-10 md:pl-16 lg:px-0">
+            <RoleInfoHeader
+              role={sessionData?.role || ""}
+              topicsToFocus={sessionData?.topicsToFocus || ""}
+              experience={sessionData?.experience || "-"}
+              questions={sessionData?.questions?.length || "-"}
+              description={sessionData?.description || ""}
+              lastUpdated={
+                sessionData?.updatedAt
+                  ? moment(sessionData.updatedAt).format("Do MMM YYYY")
+                  : ""
+              }
+            />
+          </div>
 
-<div className="max-w-6xl mx-auto pt-4 pb-4 pl-0 sm:pl-0 md:pl-0 lg:pl-[55px] -ml-[4px]">
+          <div className="max-w-5xl mx-auto pt-6 pb-8 px-4 sm:px-6 md:px-0">
+            <div className="bg-white/80 backdrop-blur shadow-xl border border-gray-100 rounded-2xl p-8 flex flex-col gap-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <p className="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-1">
+                    Interview Simulation Ready
+                  </p>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    Practice one question at a time with our interviewer
+                  </h2>
+                  <p className="text-gray-600 mt-2 max-w-2xl">
+                    We will present each question sequentially, speak it aloud, and collect your response before moving on. When you finish, you will get an auto-generated report.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 self-start md:self-auto">
+                  <div className="rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-white w-14 h-14 flex items-center justify-center text-xl font-semibold shadow-lg">
+                    AI
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Interviewer</p>
+                    <p className="text-sm font-semibold text-gray-800">Virtual Coach</p>
+                    <p className="text-xs text-gray-500">Ready to start</p>
+                  </div>
+                </div>
+              </div>
 
-      <h2 className='text-lg font-semibold color-black'>Interview Q&A</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+                  <p className="text-xs text-indigo-700 uppercase tracking-wide">Questions</p>
+                  <p className="text-2xl font-bold text-indigo-900">{sessionData?.questions?.length || 0}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <p className="text-xs text-emerald-700 uppercase tracking-wide">Experience</p>
+                  <p className="text-2xl font-bold text-emerald-900">{sessionData?.experience || "-"} yrs</p>
+                </div>
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-100">
+                  <p className="text-xs text-amber-700 uppercase tracking-wide">Focus</p>
+                  <p className="text-sm font-semibold text-amber-900 line-clamp-2">
+                    {sessionData?.topicsToFocus || "General"}
+                  </p>
+                </div>
+              </div>
 
-      <div className='grid grid-cols-12 gap-4 mt-5 mb-10'>
-        <div
-          className={`col-span-12 ${
-            openLearnMoreDrawer ? "md:col-span-7" : "md:col-span-8"
-          }`}
-        >
-          <AnimatePresence>
-            {sessionData?.questions?.map((data, index) => (
-              <motion.div
-                key={data._id || index}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{
-                  duration: 0.4,
-                  type: "spring",
-                  stiffness: 100,
-                  delay: index * 0.1,
-                  damping: 15,
-                }}
-                layout
-                layoutId={`question-${data._id || index}`}
-              >
-                <>
-                <QuestionCard
-                  question={data?.question}
-                  answer={data?.answer}
-                  onLearnMore={() =>
-                    generateConceptExplanation(data.question)
-                  }
-                  isPinned={data?.isPinned}
-                  onToggle={() => toggleQuestionPinStatus(data._id)}
-                />
-
-                {!isLoading &&
-                  sessionData?.questions?.length === index + 1 && (
-                    <div className='flex items-center justify-center mt-5'>
-                      <button
-                        className='flex items-center gap-3 text-sm text-white font-medium bg-black px-5 py-2 mr-2 rounded text-nowrap cursor-pointer'
-                        disabled={isLoading || isUpdateLoader}
-                        onClick={uploadMoreQuestions}
-                      >
-                        {isUpdateLoader ? (
-                          <SpinnerLoader />
-                        ) : (
-                          <LuListCollapse className='text-lg' />
-                        )}{" "}
-                        Load More
-                      </button>
-                    </div>
-                  )}
-                  </>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  className='flex items-center gap-3 text-sm text-white font-medium bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-3 rounded hover:shadow-lg transition-all duration-300'
+                  onClick={() => setIsInterviewMode(true)}
+                  disabled={!sessionData?.questions?.length}
+                >
+                  <LuPlay className='text-lg' /> Start Interview Simulation
+                </button>
+                <button
+                  className='flex items-center gap-3 text-sm font-medium px-4 py-2 rounded border border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm transition'
+                  onClick={uploadMoreQuestions}
+                  disabled={isUpdateLoader}
+                >
+                  {isUpdateLoader ? <SpinnerLoader /> : <LuListCollapse className='text-lg' />} Generate more questions
+                </button>
+                {errorMsg && (
+                  <p className='flex items-center gap-2 text-sm text-amber-600 font-medium'>
+                    <LuCircleAlert className='text-base' /> {errorMsg}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div>
-        <Drawer
-          isOpen={openLearnMoreDrawer}
-          onClose={() => setOpenLearnMoreDrawer(false)}
-          title={!isLoading && explanation?.title}
-        >
-          {errorMsg && (
-            <p className='flex gap-2 text-sm text-amber-600 font-medium'>
-              <LuCircleAlert className='mt-1' />
-              {errorMsg}
-            </p>
-          )}
-          {isLoading && <SkeletonLoader />}
-          {!isLoading && explanation && (
-            <AIResponsePreview content={explanation?.explanation} />
-          )}
-        </Drawer>
-      </div>
-    </div>
-  </DashboardLayout>
-);
+      )}
+    </DashboardLayout>
+  );
 };
 
 export default InterviewPrep;

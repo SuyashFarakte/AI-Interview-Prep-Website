@@ -3,12 +3,12 @@ import Question from "../models/Question.js"
 
 // API to create a new session with questions
 const createSession = async (req, res) => {
-    console.log("Create session request body:", req.body);
+    // console.log("Create session request body:", req.body);
     
     try {
 
         const { role, experience, topicsToFocus, description, questions } = req.body
-        console.log(req.user);
+        // console.log(req.user);
 
         const userId = req.user && req.user.id
 
@@ -17,21 +17,23 @@ const createSession = async (req, res) => {
             return res.json({ success: false, message: "User not authenticated" })
         }
 
-        console.log("User ID:", userId);
-        console.log("Role:", role);
-        console.log("Experience:", experience);
-        console.log("Topics to Focus:", topicsToFocus);
-        console.log("Questions:", questions);
+        // console.log("User ID:", userId);
+        // console.log("Role:", role);
+        // console.log("Experience:", experience);
+        // console.log("Topics to Focus:", topicsToFocus);
+        // console.log("Questions:", questions);
 
         // checking if all required values are coming from frontend
         if (!role || !experience || !topicsToFocus || !Array.isArray(questions)) {
             return res.json({ success: false, message: "Missing required fields" })
         }
 
-        console.log("All required fields are present. Proceeding to create session.");
+        // console.log("All required fields are present. Proceeding to create session.");
 
         // creating a new interview session document in database
         // data is stored in Session model
+
+        // console.log("Creating session in DB...");
         const session = await Session.create({
             user: userId,
             role,
@@ -40,7 +42,7 @@ const createSession = async (req, res) => {
             description: description || ""
         })
 
-        console.log("Session created with ID:", session._id);
+        // console.log("Session created with ID:", session._id);
 
         // saving multiple questions for this session
         // mapping array and linking each question with session id
@@ -50,19 +52,20 @@ const createSession = async (req, res) => {
             answer: q.answer
         }))
 
-        console.log("Prepared question data for insertion:", questionData);
+        // console.log("Prepared question data for insertion:", questionData);
         // inserting multiple questions at once into Question collection
-        const savedQuestions = await Question.insertMany(questionData)
+        const savedQuestions = await Question.insertMany(questionData);
 
-        console.log("Questions saved with IDs:", savedQuestions.map((q) => q._id));
+        // console.log("Questions saved with IDs:", savedQuestions.map((q) => q._id));
         // storing all created question document IDs in the session document
         session.questions = savedQuestions.map((q) => q._id)
         await session.save()
-        console.log("Session updated with question IDs.");
+
+        // console.log("Session updated with question IDs.");
         res.json({ success: true, session })
 
     } catch (error) {
-        console.log(error)
+        // console.log(error);
         res.json({ success: false, message: "Server error" })
     }
 }
@@ -71,7 +74,7 @@ const createSession = async (req, res) => {
 // API to get all sessions created by logged-in user
 const getMySessions = async (req, res) => {
     try {
-        const userId = req.user && req.user._id
+        const userId = req.user && req.user.id
 
         if (!userId) {
             return res.json({ success: false, message: "User not authenticated" })
@@ -86,7 +89,7 @@ const getMySessions = async (req, res) => {
         res.json({ success: true, sessions })
 
     } catch (error) {
-        console.log(error)
+        // console.log(error);
         res.json({ success: false, message: "Server error" })
     }
 }
@@ -109,7 +112,7 @@ const getSessionById = async (req, res) => {
         res.json({ success: true, session })
 
     } catch (error) {
-        console.log(error)
+        // console.log(error);
         res.json({ success: false, message: "Server error" })
     }
 }
@@ -125,7 +128,7 @@ const deleteSession = async (req, res) => {
         }
 
         // only the owner of the session can delete it
-        if (session.user.toString() !== req.user._id.toString()) {
+        if (session.user.toString() !== req.user.id.toString()) {
             return res.json({ success: false, message: "Not authorized to delete this session" })
         }
 
@@ -138,7 +141,7 @@ const deleteSession = async (req, res) => {
         res.json({ success: true, message: "Session deleted successfully" })
 
     } catch (error) {
-        console.log(error)
+        // console.log(error);
         res.json({ success: false, message: "Server error" })
     }
 }

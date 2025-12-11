@@ -21,15 +21,49 @@ Instructions:
 Important: Only return valid JSON, no extra text.
 `;
 
-console.log(process.env.GEMINI_API_KEY);
+// console.log(process.env.GEMINI_API_KEY);
+// AIzaSyD38ykT553ZjUJGQz47dBthuZdsVXVco0M
 
-const ai = new GoogleGenAI({apiKey: "AIzaSyA4UEy8-SiHSV-IsL7L-7flrz3hea2fqD8"});
+const ai = new GoogleGenAI({apiKey: "AIzaSyCJUPXGOcjw23Tt2BUwfKtiB8wt6MxqAm4"});
 
-//@desc Generate interview Questions and answers using Gemini
-//@route POST /api/ai/generate-questions
-//@access Private                                        
+// Build prompt for an interview performance report
+const interviewReportPrompt = (questions = [], userAnswers = {}, meta = {}) => {
+  const { role = "", experience = "", topicsToFocus = "" } = meta;
+  const qaPairs = questions
+    .map((q, idx) => {
+      const ua = userAnswers[idx] || "";
+      return `Q${idx + 1}: ${q.question}\nExpected: ${q.answer}\nUser: ${ua || "(no answer)"}`;
+    })
+    .join("\n\n");
+
+  return `You are an interview coach. Create a concise performance report.
+Role: ${role}
+Experience: ${experience}
+Topics: ${topicsToFocus}
+
+Q&A:
+${qaPairs}
+
+Return ONLY valid JSON in this shape:
+{
+  "summary": "2-3 sentence overall performance summary",
+  "strengths": ["bullet strength", "bullet strength"],
+  "improvements": ["bullet improvement", "bullet improvement"],
+  "perQuestion": [
+    {
+      "question": "...",
+      "verdict": "strong|okay|weak|skipped",
+      "feedback": "one-sentence actionable note"
+    }
+  ]
+}
+No extra text. Valid JSON only.`;
+};
+
+
+
 const generateInterviewQuestions = async(req , res) =>{
-     console.log("generateInterviewQuestions called with body:", req.body);
+    //  console.log("generateInterviewQuestions called with body:", req.body);
 
     try {
         const{role , experience , topicsToFocus,numberOfquestions} = req.body ;
@@ -38,20 +72,26 @@ const generateInterviewQuestions = async(req , res) =>{
         }
        
         const prompt = questionAnswerPrompt(role , experience , topicsToFocus , numberOfquestions);
-        console.log(prompt);
+        // console.log(prompt);
 
         const response = await ai.models.generateContent({
             model : "gemini-2.5-flash",
             contents: prompt ,
         });
 
-        console.log("Raw response from Gemini:", response);
+        // console.log("Raw response from Gemini:", response);
         
+        
+        // return res.status(200).json(response);//
         // Extract text from the response correctly
         let rawText = response.candidates[0].content.parts[0].text;
-
-        console.log("Raw response text:", rawText);
+        // console.log("Raw response text:", response.candidates);
+        // console.log("Raw response text:", response.candidates[0]);
+        // console.log("Raw response text:", response.candidates[0].content);
+        // console.log("Raw response text:", response.candidates[0].content.parts);
+        // console.log("Raw response text:", rawText);
         
+
         // Remove markdown code blocks more reliably
         const cleanedText = rawText
         .replace(/^```json\s*/m, "")  // Remove opening ```json
@@ -59,24 +99,41 @@ const generateInterviewQuestions = async(req , res) =>{
         .replace(/```\s*$/m, "")       // Remove closing ```
         .trim(); //remove extra spaces
 
-        console.log("Cleaned text:", cleanedText);
+        // console.log("Cleaned text:", cleanedText.questions);
 
-        //now parsing
-        const data = JSON.parse(cleanedText);
+        // Parse response (can be array or { questions: [] })
+        const parsed = JSON.parse(cleanedText);
+        // console.log("Parsed questions:", parsed);
 
-        console.log("Parsed data:", data.questions);
-        return res.status(200).json(data.questions);
+        const questions = Array.isArray(parsed) ? parsed : parsed?.questions;
+
+        if (!questions || !Array.isArray(questions) || questions.length === 0) {
+          return res.status(500).json({ message: "AI did not return questions" });
+        }
+
+        // Normalize fields
+        const normalized = questions.map((q, idx) => ({
+          id: q.id || idx + 1,
+          question: q.question || "",
+          answer: q.answer || q.expected_answer || q.expectedAnswer || "",
+          topic: q.topic || "",
+          difficulty: q.difficulty || "",
+        }));
+
+        // console.log("Normalized questions:", normalized);
+        // console.log("Parsed questions count:", normalized.length);
+        return res.status(200).json(normalized);
     } catch (error) {
-      console.log(error)
-       res.status(500).json({
+      console.log(error);
+       return res.status(500).json({
         message : "Failed to generate questions" ,
         error: error.message ,
        }); 
     }
 };
-//@desc Generate explains a interview question
-//@route POST /api/ai/generate-explanation
-//@access Private
+
+
+
 const generateConceptExplanation = async (req, res) => {
   try {
     const { question } = req.body;
@@ -87,16 +144,16 @@ const generateConceptExplanation = async (req, res) => {
     const prompt = conceptExplainPrompt(question);
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: prompt,
     });
 
-    console.log("Raw response from Gemini:", response);
+    // console.log("Raw response from Gemini:", response);
 
     // Extract text from the response correctly
     let rawText = response.candidates[0].content.parts[0].text;
 
-    console.log("Raw response text:", rawText);
+    // console.log("Raw response text:", rawText);
 
     // Remove markdown code blocks more reliably
     const cleanedText = rawText
@@ -105,7 +162,7 @@ const generateConceptExplanation = async (req, res) => {
       .replace(/```\s*$/m, "")       // Remove closing ```
       .trim(); // remove extra spaces
 
-    console.log("Cleaned text:", cleanedText);
+    // console.log("Cleaned text:", cleanedText);
 
     const data = JSON.parse(cleanedText);
 
@@ -120,9 +177,7 @@ const generateConceptExplanation = async (req, res) => {
 
 
 
-// @desc Analyze user answer and provide AI feedback
-// @route POST /api/ai/answer-feedback
-// @access Private
+
 const generateAnswerFeedback = async (req, res) => {
   try {
     const { question, answer } = req.body;
@@ -132,7 +187,7 @@ const generateAnswerFeedback = async (req, res) => {
 
     const prompt = answerFeedbackPrompt(question, answer);
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
     
@@ -171,8 +226,48 @@ const generateAnswerFeedback = async (req, res) => {
   }
 };
 
+
+
+const generateInterviewReport = async (req, res) => {
+  try {
+    const { questions, userAnswers, role, experience, topicsToFocus } = req.body;
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ message: "Questions are required" });
+    }
+
+    const prompt = interviewReportPrompt(questions, userAnswers || {}, { role, experience, topicsToFocus });
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    let rawText = response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    let parsed;
+    try {
+      const cleaned = rawText
+        .replace(/^```json\s*/m, "")
+        .replace(/^```\s*/m, "")
+        .replace(/```\s*$/m, "")
+        .trim();
+      parsed = JSON.parse(cleaned);
+    } catch (err) {
+      return res.status(200).json({
+        summary: "Could not generate structured report.",
+        strengths: [],
+        improvements: [],
+        perQuestion: [],
+      });
+    }
+
+    return res.status(200).json(parsed);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to generate report", error: error.message });
+  }
+};
+
 export{
   generateInterviewQuestions,
   generateConceptExplanation,
-  generateAnswerFeedback
+  generateAnswerFeedback,
+  generateInterviewReport
 };

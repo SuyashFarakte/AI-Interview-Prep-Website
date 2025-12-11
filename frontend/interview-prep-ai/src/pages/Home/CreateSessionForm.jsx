@@ -33,6 +33,8 @@ const CreateSessionForm = () => {
   const handleCreateSession = async (e) => {
     e.preventDefault();
 
+    console.log("hi");
+    
     const { role, experience, topicsToFocus } = formData;
     if (!role || !experience || !topicsToFocus) {
       setError("Please fill all the required fields.");
@@ -56,7 +58,7 @@ const CreateSessionForm = () => {
         numberOfQuestions: 10,
       };
       
-      console.log("Sending AI payload:", aiPayload);
+      // console.log("Sending AI payload:", aiPayload);
 
       // Alternative: Match backend field names
       const backendPayload = {
@@ -66,7 +68,7 @@ const CreateSessionForm = () => {
         numberOfquestions: 10, // Backend expects lowercase 'q'
       };
       
-      console.log("Sending AI payload:", backendPayload);
+      // console.log("Sending AI payload:", backendPayload);
 
       // Call AI API to generate questions
       const aiResponse = await axiosInstance.post(
@@ -74,7 +76,7 @@ const CreateSessionForm = () => {
         backendPayload
       );
       
-      console.log("AI Response:", aiResponse.data);
+      // console.log("AI Response:", aiResponse.data);
       
       // Validate AI response
       if (!aiResponse.data || !Array.isArray(aiResponse.data)) {
@@ -83,7 +85,7 @@ const CreateSessionForm = () => {
       
       const generatedQuestions = aiResponse.data;
 
-      console.log("Generated Questions:", generatedQuestions);
+      // console.log("Generated Questions:", generatedQuestions);
       // Create session with generated questions
       const sessionPayload = {
         ...formData,
@@ -92,7 +94,7 @@ const CreateSessionForm = () => {
         questions: generatedQuestions,
       };
       
-      console.log("Sending session payload:", sessionPayload);
+      // console.log("Sending session payload:", sessionPayload);
 
       const response = await axiosInstance.post(API_PATHS.SESSION.CREATE, sessionPayload);
 

@@ -10,7 +10,7 @@ import authRoutes from './routes/authRoutes.js';
 import sessionRoutes from './routes/sessionRoutes.js';
 import questionRoutes from './routes/questionRoutes.js';
 import { protect } from "./middleware/authMiddleware.js";
-import { generateInterviewQuestions, generateConceptExplanation, generateAnswerFeedback } from "./controllers/aiController.js";
+import { generateInterviewQuestions, generateConceptExplanation, generateAnswerFeedback, generateInterviewReport } from "./controllers/aiController.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +40,7 @@ app.use('/api/questions', questionRoutes);
 app.post('/api/ai/generate-questions', protect , generateInterviewQuestions);
 app.post('/api/ai/generate-explanation', protect , generateConceptExplanation);
 app.post('/api/ai/answer-feedback', protect, generateAnswerFeedback); // New route for answer feedback
+app.post('/api/ai/generate-report', protect, generateInterviewReport);
   
 
 // Serve uploads folder

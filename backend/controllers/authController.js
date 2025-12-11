@@ -7,9 +7,7 @@ const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
-// @desc Register a new user
-// @route POST /api/auth/register
-// @access Public
+
 const registerUser = async (req, res) => {
     try {
   const { name, email, password, profileImageUrl } = req.body;
@@ -69,7 +67,7 @@ const loginUser = async (req, res) => {
       expiresIn: "7d",
     });
 
-    console.log("User logged in:", user._id);
+    // console.log("User logged in:", user._id);
 
     res.json({
       _id: user._id,

@@ -99,15 +99,7 @@ const Landingpage = () => {
               </div>
             </div>
           </div>
-        {/* Hero Image - moved inside main container, below hero section */}
-        <div className="flex items-center justify-center w-full mt-8 md:mt-20 mb-0">
-          <img
-            src={HERO_IMG}
-            alt="Hero"
-            className="w-full md:w-[80vw] h-auto rounded-e-lg block mb-0 max-w-[600px] md:max-w-[1000px]"
-            style={{ marginBottom: 0, display: 'block' }}
-          />
-        </div>
+      
       </div>
 
         {/* Features Section */}
@@ -153,9 +145,7 @@ const Landingpage = () => {
           </div>
         </div>
 
-        <div className="text-sm bg-gray-50 text-secondary text-center p-5 mt-5">
-          Happy Coding
-        </div>
+       
       </div>
 
       {/* Modal Component */}
